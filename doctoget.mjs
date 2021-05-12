@@ -125,6 +125,10 @@ async function doctoGet(url) {
   return queue.add(() => fetch(url))
 }
 
+function getName(name) {
+  return name.replace(/(centre (de )?)?vaccinations?( covid([- ]19)?)?( éphémère)?(( de( l[a’'])?)|( du))?/i, '').replace(/^[-– ]+|[-– ]+$/g, '').trim()
+}
+
 async function getCentersForPage(n) {
   const page = (n > 1) ? `&page=${n}` : ''
   const url = `${URL}?force_max_limit=2${page}&ref_visit_motive_ids%5B%5D=6970&ref_visit_motive_ids%5B%5D=7005`
@@ -137,8 +141,9 @@ async function getCentersForPage(n) {
     lat: parseFloat(center.getAttribute('data-lat')),
     lng: parseFloat(center.getAttribute('data-lng')),
     url: center.querySelector('.dl-search-result-presentation a.js-search-result-path.dl-button-primary').href,
-    name: center.querySelector('.dl-search-result-presentation .dl-search-result-title h3 a.dl-search-result-name div').textContent.trim(),
-    city: center.querySelector('.dl-search-result-presentation .dl-search-result-content .dl-text-body').textContent.match(/\b\d{2}.?\d\d\d? [^0-9]+$/)[0].trim()
+    name: getName(center.querySelector('.dl-search-result-presentation .dl-search-result-title h3 a.dl-search-result-name div').textContent),
+    city: center.querySelector('.dl-search-result-presentation .dl-search-result-content .dl-text-body').textContent.match(/\b\d{2}.?\d\d\d? [^0-9]+$/)[0].trim(),
+    date: new Date().toISOString(),
   }))
 }
 
@@ -204,23 +209,27 @@ async function exploreCache(cache) {
 async function loadCache() {
   try {
     const json = await fsPromise.readFile(CACHE, { encoding: 'utf8'})
-    return JSON.parse(json)
+    return Object.fromEntries(JSON.parse(json))
   } catch(e) {
     return {}
   }
 }
 
 async function writeCache(cache) {
-  const json = JSON.stringify(cache, null, 2)
+  const data = Object.entries(cache).sort((a,b) => a[1].distance - b[1].distance)
+  const json = JSON.stringify(data, null, 2)
   await fsPromise.writeFile(CACHE, json)
 }
 
 async function main() {
   const cache = await loadCache()
   await exploreCache(cache)
-  await searchNewCenters(cache)
-  await writeCache(cache)
-  console.log("END.")
+  try {
+    await searchNewCenters(cache)
+  } finally {
+    await writeCache(cache)
+  }
+  console.log(".")
 }
 
 main()
