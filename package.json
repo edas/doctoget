@@ -1,0 +1,13 @@
+{
+  "engines": {
+    "node": ">=16.0"
+  },
+  "dependencies": {
+    "geoportal-access-lib": "^2.1.8",
+    "jsdom": "^16.5.3",
+    "lodash-es": "^4.17.21",
+    "loglevel": "^1.7.1",
+    "node-fetch": "^2.6.1",
+    "p-queue": "^7.1.0"
+  }
+}
